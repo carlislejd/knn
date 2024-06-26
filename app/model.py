@@ -37,18 +37,18 @@ def expand_metadata(df):
 def input_punk(df, id):
     
     df = df.copy()
-    today  = date.today()
+    today = pd.to_datetime('today')
     
     target = ['totalDecimalPrice', 'usdPrice', 'blockTimestamp']
 
-    # droping target from data matrix
+    # dropping target from data matrix
     df_data = df.drop(target, axis=1)
 
     # set target
     df_target = df[target]
 
     # fit on data, 12 neighbors
-    nn = NearestNeighbors(algorithm='brute', metric='cosine', leaf_size =15, n_neighbors=50, n_jobs=-1)
+    nn = NearestNeighbors(algorithm='brute', metric='cosine', leaf_size=15, n_neighbors=50, n_jobs=-1)
     nn.fit(df_data)
 
     # query point 
@@ -59,27 +59,32 @@ def input_punk(df, id):
     neigh_dist, neigh_indices = nn.kneighbors(data_vect)
     indexs = neigh_indices.flat[0:50].tolist()
 
-    #adding url to each track
+    # adding url to each track
     output = df_target.iloc[indexs].copy()
     
     output['image_url'] = 'https://www.larvalabs.com/cryptopunks/cryptopunk' + output.index.astype(str) + '.png'
     output['ranking'] = np.arange(len(output))
-    output['blockTimestamp'] = pd.to_datetime(output['blockTimestamp']).dt.date
+    
+    # Convert 'blockTimestamp' to datetime
+    output['blockTimestamp'] = pd.to_datetime(output['blockTimestamp'], errors='coerce')
+
+    # Ensure there are no NaT (Not a Time) values
+    if output['blockTimestamp'].isnull().any():
+        raise ValueError("Some of the timestamps could not be converted to datetime.")
+    
     output['days_old'] = (today - output['blockTimestamp']).dt.days
 
-    
     output = output.sort_values(by=['blockTimestamp'], ascending=False)
     output = output.loc[~output.index.isin([input_index])]
     output = output[0:7]
     usd_mean = output['usdPrice'].mean()
     eth_mean = output['totalDecimalPrice'].mean()
     
-    #output['usdPrice'] = output['usdPrice'].apply(lambda x: "${:.1f}k".format((x/1000)))
     output['usdPrice'] = round(output['usdPrice'], 2)
     final = output[['blockTimestamp', 'usdPrice', 'totalDecimalPrice', 'ranking', 'days_old']]
     final.reset_index(inplace=True)
     final.rename(columns={'assetId': 'ID', 'blockTimestamp': 'Date', 'days_old': 'Days ago', 'usdPrice': 'USD', 'totalDecimalPrice': 'ETH', 'ranking': '°Seperation'}, inplace=True)
-    return output, final, round(usd_mean,2), round(eth_mean,2)
+    return output, final, round(usd_mean, 2), round(eth_mean, 2)
 
 
 def cum_graph(df):
