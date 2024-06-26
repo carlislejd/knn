@@ -1,0 +1,53 @@
+<meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.6/d3.min.js"></script>
+
+  
+  <header>
+    <button class="home">
+    <a href="/" style="text-decoration: none"><h3>.comps</h3></a>
+    </button>    
+  </header>
+  <br>
+  <br>
+  <br>
+  <br>
+
+{% extends "base.html" %} {% block body %}
+<div class="container">
+    
+    <h1>Punk {{ output_song }}</h1>
+    <a href="https://www.larvalabs.com/cryptopunks/details/{{ original }}"><img src="{{ original }}" width="115" height="125" style="max-width:100%;height:auto;"></a>
+    <br>
+    <br>
+    <h1>Finding similar recent sales</h1>
+    
+
+    <table>
+        {% for index, row in punk_model.iterrows() %}
+        <tr>
+            <a href="https://www.larvalabs.com/cryptopunks/details/{{index}}"><img src="{{row['image_url']}}" width="95" height="100" style="max-width:100%;height:auto;"></a>
+        {% endfor %}
+    </table>
+
+
+    <div class="linechart" id="linechart">
+      <script>
+        var graphs = {{cum | safe}};
+        Plotly.plot('linechart',graphs,{});
+      </script>
+    </div>
+
+
+    {% for table in tables %}
+    {{ table|safe }}
+    {% endfor %}
+
+
+
+    <h1>Average Price: {{ avg_eth }}</h1>
+</div>
+{% endblock %}
