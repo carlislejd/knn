@@ -9,21 +9,9 @@ import plotly.graph_objects as go
 
 from datetime import date
 from itertools import cycle
-from elasticsearch_dsl import Search
 from sklearn.neighbors import NearestNeighbors
 
 
-from .config import elastic_search
-
-
-def retrieve_data(table):
-    """
-    Retrieves data from Elasticsearch
-    """
-    s = Search(using=elastic_search(), index=table).sort('-blockTimestamp')
-    df = pd.DataFrame([hit.to_dict() for hit in s.scan()])
-    df['assetId'] = df['assetId'].astype(int)
-    return df
 
 
 def expand_metadata(df):
@@ -92,38 +80,6 @@ def input_punk(df, id):
     final.reset_index(inplace=True)
     final.rename(columns={'assetId': 'ID', 'blockTimestamp': 'Date', 'days_old': 'Days ago', 'usdPrice': 'USD', 'totalDecimalPrice': 'ETH', 'ranking': '°Seperation'}, inplace=True)
     return output, final, round(usd_mean,2), round(eth_mean,2)
-
-
-def update_punks():
-    table = 'nft_sales_cryptopunks_ͼ'
-    raw_data = retrieve_data(table)
-    expanded = expand_metadata(raw_data)
-
-    df = expanded.sort_values('blockTimestamp').drop_duplicates('assetId',keep='last').copy()
-    df = df.dropna(axis=1, how='all')
-    to_drop = ['transactionHash', 'nftAddress', 'marketAddress', 'tokenAddress',
-            'feeUSDPrice', 'feeTotalPrice', 'feeTotalDecimalPrice', 'tokenTicker', 'blockNumber',
-            'feeCollectors', 'buyer', 'seller', 'blockchain', 'project', 'nftTicker',
-            'saleType', 'totalPrice', 'image']
-
-    df = df.drop(to_drop, axis=1)
-    df = df[~df.isin([np.nan, np.inf, -np.inf]).any(1)]
-    df['blockTimestamp'] = pd.to_datetime(df['blockTimestamp'])
-    df.set_index('assetId', inplace=True)
-    return df.to_csv('punks.csv')
-
-
-def prediction_labels(project, ticker):
-    s = Search(using=elastic_search(), index='asset_definitions_nftradar').query('match', project=project).query('match', nftTicker=ticker.upper()).source(['assetId', 'blockNumber', 'nftTicker', 'project', 'meta.tags'])
-    df = pd.DataFrame([hit.to_dict() for hit in s.scan()])
-    df['blockNumber'].replace('', np.nan, inplace=True)
-    df.dropna(subset=['blockNumber'], inplace=True)
-
-    df = df.drop_duplicates(subset=['assetId'], keep='first')
-    df['assetId'] = df['assetId'].astype(int)
-    df.sort_values(by='assetId', inplace=True)
-    df.reset_index(drop=True, inplace=True)
-    return df
 
 
 def cum_graph(df):
