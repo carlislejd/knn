@@ -7,7 +7,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 
-from datetime import date
+from datetime import datetime, timedelta
 from itertools import cycle
 from sklearn.neighbors import NearestNeighbors
 
@@ -35,10 +35,9 @@ def expand_metadata(df):
 
 
 def input_punk(df, id):
-    
     df = df.copy()
-    today = pd.to_datetime('today')
-    
+    today = pd.to_datetime(datetime.now().date())
+
     target = ['totalDecimalPrice', 'usdPrice', 'blockTimestamp']
 
     # dropping target from data matrix
@@ -65,8 +64,8 @@ def input_punk(df, id):
     output['image_url'] = 'https://www.larvalabs.com/cryptopunks/cryptopunk' + output.index.astype(str) + '.png'
     output['ranking'] = np.arange(len(output))
     
-    # Convert 'blockTimestamp' to datetime
-    output['blockTimestamp'] = pd.to_datetime(output['blockTimestamp'], errors='coerce')
+    # Convert 'blockTimestamp' to datetime without timezone
+    output['blockTimestamp'] = pd.to_datetime(output['blockTimestamp'], errors='coerce').dt.tz_localize(None)
 
     # Ensure there are no NaT (Not a Time) values
     if output['blockTimestamp'].isnull().any():
